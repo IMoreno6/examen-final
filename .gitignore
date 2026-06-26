@@ -1,0 +1,15 @@
+# Maven target directory
+target/
+*.jar
+*.war
+
+# IDEs and editors
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.vscode/
+
+# Logs y temporales
+*.log
