@@ -1,4 +1,4 @@
-package com.proyecto.evaluacion.security;
+package com.proyecto.evaluacion.config;
 
 import com.proyecto.evaluacion.model.Pregunta;
 import com.proyecto.evaluacion.model.PreguntaSeleccionMultiple;

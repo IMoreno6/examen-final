@@ -4,6 +4,7 @@ import com.proyecto.evaluacion.security.JwtAuthenticationEntryPoint;
 import com.proyecto.evaluacion.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -34,15 +35,11 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    @Order(1)
+    public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf
-                .ignoringRequestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**"))
-                .ignoringRequestMatchers(AntPathRequestMatcher.antMatcher("/api/**"))
-            )
-            .headers(headers -> headers
-                .frameOptions(frame -> frame.sameOrigin())
-            )
+            .securityMatcher("/api/**")
+            .csrf(csrf -> csrf.disable())
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint(jwtAuthenticationEntryPoint)
             )
@@ -50,15 +47,35 @@ public class SecurityConfig {
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
             .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/css/**", "/js/**", "/bootstrap/**", "/images/**").permitAll()
-                .requestMatchers("/", "/index").permitAll()
-                .requestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**")).permitAll()
-                .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/api/auth/login").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/preguntas/**").hasAnyRole("USER", "ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/preguntas/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/preguntas/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/preguntas/**").hasRole("ADMIN")
+                .anyRequest().authenticated()
+            )
+            .httpBasic(httpBasic -> {});
+
+        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+
+    @Bean
+    @Order(2)
+    public SecurityFilterChain webSecurityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .csrf(csrf -> csrf
+                .ignoringRequestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**"))
+            )
+            .headers(headers -> headers
+                .frameOptions(frame -> frame.sameOrigin())
+            )
+            .authorizeHttpRequests(authz -> authz
+                .requestMatchers("/css/**", "/js/**", "/bootstrap/**", "/images/**").permitAll()
+                .requestMatchers("/", "/index").permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**")).permitAll()
+                .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/preguntas").hasAnyRole("USER", "ADMIN")
                 .requestMatchers("/preguntas/nuevo", "/preguntas/guardar", "/preguntas/editar/**", "/preguntas/eliminar/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
@@ -70,10 +87,7 @@ public class SecurityConfig {
             .logout(logout -> logout
                 .logoutSuccessUrl("/")
                 .permitAll()
-            )
-            .httpBasic(httpBasic -> {});
-
-        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            );
 
         return http.build();
     }
