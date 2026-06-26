@@ -1,9 +1,8 @@
 package com.proyecto.evaluacion.controller.api;
 
-import com.proyecto.evaluacion.dto.PreguntaDTO;
-import com.proyecto.evaluacion.dto.PreguntaRequestDTO;
-import com.proyecto.evaluacion.model.Pregunta;
-import com.proyecto.evaluacion.model.Tematica;
+import com.proyecto.evaluacion.dto.*;
+import com.proyecto.evaluacion.exception.PreguntaNoEncontradaException;
+import com.proyecto.evaluacion.model.*;
 import com.proyecto.evaluacion.service.PreguntaService;
 import com.proyecto.evaluacion.service.TematicaService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -17,14 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/preguntas")
@@ -59,9 +51,9 @@ public class PreguntaRestController {
     })
     @GetMapping("/{id}")
     public ResponseEntity<PreguntaDTO> obtenerPregunta(@PathVariable Long id) {
-        return preguntaService.buscarPorId(id)
-                .map(p -> ResponseEntity.ok(toDTO(p)))
-                .orElse(ResponseEntity.notFound().build());
+        Pregunta pregunta = preguntaService.buscarPorId(id)
+                .orElseThrow(() -> new PreguntaNoEncontradaException(id));
+        return ResponseEntity.ok(toDTO(pregunta));
     }
 
     @Operation(summary = "Crear nueva pregunta", description = "Crea una pregunta a partir de los datos proporcionados")
@@ -93,7 +85,6 @@ public class PreguntaRestController {
                 .orElseThrow(() -> new RuntimeException("Temática no encontrada con id: " + request.getTematicaId()));
 
         Pregunta pregunta = toEntity(request, tematica);
-        pregunta.setId(id);
         Pregunta actualizada = preguntaService.actualizar(id, pregunta);
         return ResponseEntity.ok(toDTO(actualizada));
     }
@@ -105,33 +96,49 @@ public class PreguntaRestController {
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminarPregunta(@PathVariable Long id) {
-        if (preguntaService.buscarPorId(id).isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
+        Pregunta pregunta = preguntaService.buscarPorId(id)
+                .orElseThrow(() -> new PreguntaNoEncontradaException(id));
         preguntaService.eliminarPorId(id);
         return ResponseEntity.noContent().build();
     }
 
     private PreguntaDTO toDTO(Pregunta pregunta) {
-        return PreguntaDTO.builder()
-                .id(pregunta.getId())
-                .enunciado(pregunta.getEnunciado())
-                .descripcion(pregunta.getDescripcion())
-                .puntaje(pregunta.getPuntaje())
-                .dificultad(pregunta.getDificultad())
-                .tipo(pregunta.getTipo())
-                .tematicaId(pregunta.getTematica().getId())
-                .tematicaNombre(pregunta.getTematica().getNombre())
-                .build();
+        PreguntaDTO dto = new PreguntaDTO();
+        dto.setId(pregunta.getId());
+        dto.setEnunciado(pregunta.getEnunciado());
+        dto.setPuntaje(pregunta.getPuntaje());
+        dto.setDificultad(pregunta.getDificultad());
+        dto.setTipo(pregunta.getTipo());
+        dto.setTematicaId(pregunta.getTematica().getId());
+        dto.setTematicaNombre(pregunta.getTematica().getNombre());
+        return dto;
     }
 
     private Pregunta toEntity(PreguntaRequestDTO request, Tematica tematica) {
-        Pregunta pregunta = new Pregunta();
+        Pregunta pregunta;
+        switch (request.getTipo()) {
+            case "VF" -> {
+                PreguntaVerdaderoFalso vf = new PreguntaVerdaderoFalso();
+                vf.setCorrecto(request.getCorrecto());
+                pregunta = vf;
+            }
+            case "SELECCION_UNICA" -> {
+                PreguntaSeleccionUnica su = new PreguntaSeleccionUnica();
+                su.setOpciones(request.getOpciones());
+                su.setCorrecta(request.getCorrecta());
+                pregunta = su;
+            }
+            case "SELECCION_MULTIPLE" -> {
+                PreguntaSeleccionMultiple sm = new PreguntaSeleccionMultiple();
+                sm.setOpciones(request.getOpciones());
+                sm.setCorrectas(request.getCorrectas());
+                pregunta = sm;
+            }
+            default -> throw new IllegalArgumentException("Tipo de pregunta no válido: " + request.getTipo());
+        }
         pregunta.setEnunciado(request.getEnunciado());
-        pregunta.setDescripcion(request.getDescripcion());
         pregunta.setPuntaje(request.getPuntaje());
         pregunta.setDificultad(request.getDificultad());
-        pregunta.setTipo(request.getTipo());
         pregunta.setTematica(tematica);
         return pregunta;
     }

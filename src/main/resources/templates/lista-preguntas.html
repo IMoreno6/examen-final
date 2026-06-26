@@ -1,38 +1,20 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <title>Lista de Preguntas - Gesti&oacute;n de Preguntas</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link th:href="@{/bootstrap/bootstrap.min.css}" rel="stylesheet">
     <link th:href="@{/css/style.css}" rel="stylesheet">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container">
-            <a class="navbar-brand" href="/">Gesti&oacute;n de Preguntas</a>
-            <div class="collapse navbar-collapse">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" th:href="@{/preguntas}">Listado de Preguntas</a>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">API REST</a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="/swagger-ui/index.html">Swagger UI</a></li>
-                            <li><a class="dropdown-item" href="/v3/api-docs">API Docs (JSON)</a></li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-
+    <nav th:replace="~{fragments/menu :: navbar}"></nav>
     <div class="container mt-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 style="font-size: 1.5rem; font-weight: 700; color: var(--dark); letter-spacing: -0.03em; margin: 0;">
                 Listado de Preguntas
             </h1>
-            <a class="btn btn-success" th:href="@{/preguntas/nuevo}">+ A&ntilde;adir Nueva Pregunta</a>
+            <a class="btn btn-success" th:href="@{/preguntas/nuevo}" sec:authorize="hasRole('ADMIN')">+ A&ntilde;adir Nueva Pregunta</a>
         </div>
 
         <form class="filter-form row g-3" th:action="@{/preguntas}" method="get">
@@ -47,10 +29,9 @@
                 <label class="form-label">Tipo</label>
                 <select class="form-select" name="tipo">
                     <option value="">-- Todos los tipos --</option>
-                    <option value="MULTIPLE" th:selected="${tipoSel == 'MULTIPLE'}">Opci&oacute;n M&uacute;ltiple</option>
                     <option value="VF" th:selected="${tipoSel == 'VF'}">Verdadero / Falso</option>
-                    <option value="CORTA" th:selected="${tipoSel == 'CORTA'}">Respuesta Corta</option>
-                    <option value="DESARROLLO" th:selected="${tipoSel == 'DESARROLLO'}">Desarrollo</option>
+                    <option value="SELECCION_UNICA" th:selected="${tipoSel == 'SELECCION_UNICA'}">Selecci&oacute;n &Uacute;nica</option>
+                    <option value="SELECCION_MULTIPLE" th:selected="${tipoSel == 'SELECCION_MULTIPLE'}">Selecci&oacute;n M&uacute;ltiple</option>
                 </select>
             </div>
             <div class="col-md-4 d-flex align-items-end">
@@ -64,7 +45,6 @@
                     <tr>
                         <th>ID</th>
                         <th>Enunciado</th>
-                        <th>Descripci&oacute;n</th>
                         <th>Puntaje</th>
                         <th>Dif.</th>
                         <th>Tipo</th>
@@ -76,23 +56,26 @@
                     <tr th:each="pregunta : ${preguntas.content}">
                         <td><strong th:text="${pregunta.id}">1</strong></td>
                         <td th:text="${pregunta.enunciado}">Enunciado</td>
-                        <td th:text="${pregunta.descripcion}">Descripci&oacute;n</td>
                         <td th:text="${pregunta.puntaje}">0.00</td>
                         <td th:text="${pregunta.dificultad}">1</td>
                         <td>
-                            <span th:if="${pregunta.tipo == 'MULTIPLE'}" class="badge-tipo badge-tipo-multiple">Opci&oacute;n M&uacute;ltiple</span>
                             <span th:if="${pregunta.tipo == 'VF'}" class="badge-tipo badge-tipo-vf">Verdadero / Falso</span>
-                            <span th:if="${pregunta.tipo == 'CORTA'}" class="badge-tipo badge-tipo-corta">Respuesta Corta</span>
-                            <span th:if="${pregunta.tipo == 'DESARROLLO'}" class="badge-tipo badge-tipo-desarrollo">Desarrollo</span>
+                            <span th:if="${pregunta.tipo == 'SELECCION_UNICA'}" class="badge-tipo badge-tipo-corta">Selecci&oacute;n &Uacute;nica</span>
+                            <span th:if="${pregunta.tipo == 'SELECCION_MULTIPLE'}" class="badge-tipo badge-tipo-multiple">Selecci&oacute;n M&uacute;ltiple</span>
                         </td>
                         <td th:text="${pregunta.tematica.nombre}">Tem&aacute;tica</td>
                         <td>
-                            <a class="btn btn-warning btn-sm" th:href="@{/preguntas/editar/{id}(id=${pregunta.id})}">Editar</a>
-                            <a class="btn btn-danger btn-sm" th:href="@{/preguntas/eliminar/{id}(id=${pregunta.id})}" onclick="return confirm('¿Estás seguro de eliminar esta pregunta?')">Eliminar</a>
+                            <th:block sec:authorize="hasRole('ADMIN')">
+                                <a class="btn btn-warning btn-sm" th:href="@{/preguntas/editar/{id}(id=${pregunta.id})}">Editar</a>
+                                <a class="btn btn-danger btn-sm" th:href="@{/preguntas/eliminar/{id}(id=${pregunta.id})}" onclick="return confirm('¿Estás seguro de eliminar esta pregunta?')">Eliminar</a>
+                            </th:block>
+                            <th:block sec:authorize="hasRole('USER')">
+                                <span class="text-muted">Sin permisos</span>
+                            </th:block>
                         </td>
                     </tr>
                     <tr th:if="${preguntas.totalElements == 0}">
-                        <td colspan="8" class="text-center py-4" style="color: var(--secondary);">
+                        <td colspan="7" class="text-center py-4" style="color: var(--secondary);">
                             No hay preguntas registradas.
                         </td>
                     </tr>
@@ -120,13 +103,7 @@
             </ul>
         </nav>
     </div>
-
-    <div class="footer">
-        <div class="container">
-            <p class="mb-0">&copy; 2024 Sistema de Gesti&oacute;n de Preguntas. Todos los derechos reservados.</p>
-        </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <div th:replace="~{fragments/menu :: footer}"></div>
+    <script th:src="@{/bootstrap/bootstrap.bundle.min.js}"></script>
 </body>
 </html>

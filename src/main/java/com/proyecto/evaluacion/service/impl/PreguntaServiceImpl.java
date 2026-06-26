@@ -1,5 +1,6 @@
 package com.proyecto.evaluacion.service.impl;
 
+import com.proyecto.evaluacion.exception.PreguntaNoEncontradaException;
 import com.proyecto.evaluacion.model.Pregunta;
 import com.proyecto.evaluacion.repository.PreguntaRepository;
 import com.proyecto.evaluacion.repository.TematicaRepository;
@@ -15,11 +16,9 @@ import java.util.Optional;
 public class PreguntaServiceImpl implements PreguntaService {
 
     private final PreguntaRepository preguntaRepository;
-    private final TematicaRepository tematicaRepository;
 
-    public PreguntaServiceImpl(PreguntaRepository preguntaRepository, TematicaRepository tematicaRepository) {
+    public PreguntaServiceImpl(PreguntaRepository preguntaRepository) {
         this.preguntaRepository = preguntaRepository;
-        this.tematicaRepository = tematicaRepository;
     }
 
     @Override
@@ -47,20 +46,21 @@ public class PreguntaServiceImpl implements PreguntaService {
         return preguntaRepository.findById(id)
                 .map(existing -> {
                     existing.setEnunciado(pregunta.getEnunciado());
-                    existing.setDescripcion(pregunta.getDescripcion());
                     existing.setPuntaje(pregunta.getPuntaje());
                     existing.setDificultad(pregunta.getDificultad());
-                    existing.setTipo(pregunta.getTipo());
                     if (pregunta.getTematica() != null) {
                         existing.setTematica(pregunta.getTematica());
                     }
                     return preguntaRepository.save(existing);
                 })
-                .orElseThrow(() -> new RuntimeException("Pregunta no encontrada con id: " + id));
+                .orElseThrow(() -> new PreguntaNoEncontradaException(id));
     }
 
     @Override
     public void eliminarPorId(Long id) {
+        if (!preguntaRepository.existsById(id)) {
+            throw new PreguntaNoEncontradaException(id);
+        }
         preguntaRepository.deleteById(id);
     }
 

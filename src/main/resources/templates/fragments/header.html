@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title, links)">
+    <meta charset="UTF-8">
+    <title th:replace="${title}">Gesti&oacute;n de Preguntas</title>
+    <link th:href="@{/bootstrap/bootstrap.min.css}" rel="stylesheet">
+    <link th:href="@{/css/style.css}" rel="stylesheet" th:remove="tag" th:include="${links}">
+</head>
+</html>

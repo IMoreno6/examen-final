@@ -1,6 +1,6 @@
 package com.proyecto.evaluacion.controller;
 
-import com.proyecto.evaluacion.model.Pregunta;
+import com.proyecto.evaluacion.model.*;
 import com.proyecto.evaluacion.service.TematicaService;
 import com.proyecto.evaluacion.service.PreguntaService;
 import org.springframework.data.domain.Page;
@@ -8,14 +8,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-
+import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
+import java.beans.PropertyEditorSupport;
 
 @Controller
 @RequestMapping("/preguntas")
@@ -27,6 +22,21 @@ public class PreguntaController {
     public PreguntaController(PreguntaService preguntaService, TematicaService tematicaService) {
         this.preguntaService = preguntaService;
         this.tematicaService = tematicaService;
+    }
+
+    @InitBinder
+    public void initBinder(org.springframework.web.bind.WebDataBinder binder) {
+        binder.registerCustomEditor(Tematica.class, new PropertyEditorSupport() {
+            @Override
+            public void setAsText(String text) {
+                if (text == null || text.isBlank()) {
+                    setValue(null);
+                } else {
+                    Long id = Long.parseLong(text);
+                    tematicaService.buscarPorId(id).ifPresent(this::setValue);
+                }
+            }
+        });
     }
 
     @GetMapping
@@ -45,25 +55,31 @@ public class PreguntaController {
 
     @GetMapping("/nuevo")
     public String mostrarFormularioNuevo(Model model) {
-        model.addAttribute("pregunta", new Pregunta());
+        model.addAttribute("pregunta", new PreguntaVerdaderoFalso());
         model.addAttribute("tematicas", tematicaService.listarTodas());
         return "formulario-pregunta";
     }
 
     @PostMapping("/guardar")
-    public String guardarPregunta(@Valid @ModelAttribute Pregunta pregunta, BindingResult result, Model model) {
+    public String guardarPregunta(@Valid @ModelAttribute("pregunta") Pregunta pregunta, BindingResult result, Model model) {
         if (result.hasErrors()) {
             model.addAttribute("tematicas", tematicaService.listarTodas());
             return "formulario-pregunta";
         }
-        preguntaService.guardar(pregunta);
+
+        if (pregunta.getId() != null) {
+            preguntaService.actualizar(pregunta.getId(), pregunta);
+        } else {
+            preguntaService.guardar(pregunta);
+        }
         return "redirect:/preguntas";
     }
 
     @GetMapping("/editar/{id}")
     public String mostrarFormularioEditar(@PathVariable Long id, Model model) {
-        model.addAttribute("pregunta", preguntaService.buscarPorId(id)
-                .orElseThrow(() -> new IllegalArgumentException("Pregunta no encontrada: " + id)));
+        Pregunta pregunta = preguntaService.buscarPorId(id)
+                .orElseThrow(() -> new IllegalArgumentException("Pregunta no encontrada: " + id));
+        model.addAttribute("pregunta", pregunta);
         model.addAttribute("tematicas", tematicaService.listarTodas());
         return "formulario-pregunta";
     }

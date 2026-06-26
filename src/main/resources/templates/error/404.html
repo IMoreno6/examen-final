@@ -2,19 +2,18 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Inicio - Gesti&oacute;n de Preguntas</title>
+    <title>P&aacute;gina no encontrada</title>
     <link th:href="@{/bootstrap/bootstrap.min.css}" rel="stylesheet">
     <link th:href="@{/css/style.css}" rel="stylesheet">
 </head>
 <body>
     <nav th:replace="~{fragments/menu :: navbar}"></nav>
     <div class="container">
-        <div class="hero-section">
-            <h1>Bienvenido a la Aplicaci&oacute;n de Gesti&oacute;n</h1>
-            <p class="lead">Administra tu banco de preguntas de forma r&aacute;pida y sencilla.</p>
-            <a class="btn btn-primary btn-lg" th:href="@{/preguntas}">
-                Ver Listado de Preguntas
-            </a>
+        <div class="hero-section" style="padding: 5rem 0;">
+            <div style="font-size: 5rem; margin-bottom: 1rem; color: var(--warning);">404</div>
+            <h1>P&aacute;gina no encontrada</h1>
+            <p class="lead">La p&aacute;gina que buscas no existe o ha sido movida.</p>
+            <a class="btn btn-primary btn-lg" th:href="@{/}">Volver al inicio</a>
         </div>
     </div>
     <div th:replace="~{fragments/menu :: footer}"></div>

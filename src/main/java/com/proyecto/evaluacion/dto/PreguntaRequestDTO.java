@@ -5,7 +5,6 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,9 +19,6 @@ public class PreguntaRequestDTO {
     @NotBlank(message = "El enunciado no puede estar vacío")
     private String enunciado;
 
-    @Size(min = 3, max = 200, message = "La descripción debe tener entre 3 y 200 caracteres")
-    private String descripcion;
-
     @NotNull(message = "El puntaje es obligatorio")
     @Positive(message = "El puntaje debe ser mayor que 0")
     private Double puntaje;
@@ -36,4 +32,9 @@ public class PreguntaRequestDTO {
 
     @NotNull(message = "La temática es obligatoria")
     private Long tematicaId;
+
+    private Boolean correcto;
+    private String opciones;
+    private String correcta;
+    private String correctas;
 }
