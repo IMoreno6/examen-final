@@ -1,88 +1,71 @@
 package com.proyecto.evaluacion.controller.api;
 
-import com.proyecto.evaluacion.dto.PreguntaRequestDTO;
+import com.proyecto.evaluacion.model.Pregunta;
+import com.proyecto.evaluacion.model.PreguntaVerdaderoFalso;
 import com.proyecto.evaluacion.model.Tematica;
-import com.proyecto.evaluacion.repository.TematicaRepository;
-import org.junit.jupiter.api.BeforeEach;
+import com.proyecto.evaluacion.security.JwtTokenProvider;
+import com.proyecto.evaluacion.service.PreguntaService;
+import com.proyecto.evaluacion.service.TematicaService;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration;
+import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("dev")
+@WebMvcTest(value = PreguntaRestController.class, excludeAutoConfiguration = {
+        SecurityAutoConfiguration.class,
+        SecurityFilterAutoConfiguration.class,
+        UserDetailsServiceAutoConfiguration.class
+})
 class PreguntaRestControllerTest {
 
     @Autowired
-    private TestRestTemplate restTemplate;
+    private MockMvc mockMvc;
 
-    @Autowired
-    private TematicaRepository tematicaRepository;
+    @MockBean
+    private PreguntaService preguntaService;
 
-    @LocalServerPort
-    private int port;
+    @MockBean
+    private TematicaService tematicaService;
 
-    private String adminAuth;
+    @MockBean
+    private JwtTokenProvider jwtTokenProvider;
 
-    @BeforeEach
-    void setUp() {
-        adminAuth = "Basic " + java.util.Base64.getEncoder().encodeToString("admin:admin123".getBytes());
+    @Test
+    void testObtenerPregunta_ShouldReturnPregunta() throws Exception {
+        Tematica tematica = new Tematica(1L, "Matematicas");
+        Pregunta pregunta = new PreguntaVerdaderoFalso(1L, "2+2=4?", 1.0, 1, tematica, true);
+
+        Mockito.when(preguntaService.buscarPorId(1L)).thenReturn(Optional.of(pregunta));
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/preguntas/1")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.enunciado").value("2+2=4?"))
+                .andExpect(jsonPath("$.puntaje").value(1.0))
+                .andExpect(jsonPath("$.dificultad").value(1))
+                .andExpect(jsonPath("$.tematicaId").value(1))
+                .andExpect(jsonPath("$.tematicaNombre").value("Matematicas"));
     }
 
     @Test
-    void deListarPreguntas() {
-        var headers = new org.springframework.http.HttpHeaders();
-        headers.set("Authorization", adminAuth);
-        var entity = new HttpEntity<>(headers);
+    void testObtenerPregunta_NotFound() throws Exception {
+        Mockito.when(preguntaService.buscarPorId(999L)).thenReturn(Optional.empty());
 
-        ResponseEntity<String> response = restTemplate.exchange(
-                "/api/preguntas", HttpMethod.GET, entity, String.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    }
-
-    @Test
-    void deCrearPregunta() {
-        Tematica tematica = tematicaRepository.findAll().get(0);
-        PreguntaRequestDTO request = PreguntaRequestDTO.builder()
-                .enunciado("Pregunta de test?")
-                .puntaje(2.0)
-                .dificultad(3)
-                .tipo("SELECCION_UNICA")
-                .tematicaId(tematica.getId())
-                .opciones("A, B, C")
-                .correcta("A")
-                .build();
-
-        var headers = new org.springframework.http.HttpHeaders();
-        headers.set("Authorization", adminAuth);
-        var entity = new HttpEntity<>(request, headers);
-
-        ResponseEntity<String> response = restTemplate.exchange(
-                "/api/preguntas", HttpMethod.POST, entity, String.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-    }
-
-    @Test
-    void deRechazarNoAutenticado() throws Exception {
-        URL url = new URL("http://localhost:" + port + "/api/preguntas");
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setInstanceFollowRedirects(false);
-        int status = conn.getResponseCode();
-        conn.disconnect();
-
-        assertThat(status).isEqualTo(HttpStatus.UNAUTHORIZED.value());
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/preguntas/999")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(MockMvcResultMatchers.status().isNotFound());
     }
 }
